@@ -1,0 +1,23 @@
+providers:
+  docker:
+    swarmMode: true
+    watch: true
+    swarmModeRefreshSeconds: 2s
+    exposedByDefault: false
+    network: traefik
+  file:
+    filename: /etc/traefik/dynamic.yml
+
+entryPoints:
+  web:
+    address: ":80"
+    proxyProtocol:
+      trustedIPs:
+        - "10.0.0.0/8"
+        - "172.0.0.0/8"
+        - "127.0.0.0/8"
+
+ping: {}
+
+log:
+  level: error

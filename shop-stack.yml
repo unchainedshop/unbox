@@ -1,0 +1,154 @@
+version: '3.7'
+
+services:
+  mongodb:
+    image: mongo:4.4.18-focal # The latest mongodb that is compatible with armv7
+    hostname: mongodb
+    logging:
+      driver: json-file
+      options:
+        max-file: 5
+        max-size: 10m
+    healthcheck:
+      test: ["CMD","mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - shop
+    command: --wiredTigerCacheSizeGB 2.0 --bind_ip localhost,mongodb
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+      resources:
+        reservations:
+          memory: 2G
+          cpus: "0.5"
+        limits:
+          memory: 3G
+          cpus: "1.0"
+
+  helios:
+    image: helios
+    hostname: helios
+    logging:
+      driver: json-file
+      options:
+        max-file: 5
+        max-size: 10m
+    healthcheck:
+      test: >-
+        curl -f -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[]}' http://localhost:8545 || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    networks:
+      - shop
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+      resources:
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+        limits:
+          memory: 256M
+          cpus: "0.2"
+
+  engine:
+    hostname: box-engine
+    image: registry.ucc.dev/unchained/kitchensink:box
+    env_file: .env
+    environment:
+      MONGO_URL: mongodb://mongodb/unchained
+      EMAIL_FROM: noreply@localhost
+      EMAIL_WEBSITE_NAME: Unchained Box
+      EMAIL_WEBSITE_URL: http://unbox.localhost
+      NODE_ENV: production
+      ROOT_URL: http://unbox.localhost
+      UNCHAINED_ASSIGN_CART_FOR_USERS: '1'
+      UNCHAINED_COOKIE_DOMAIN: unbox.localhost
+      UNCHAINED_COOKIE_PATH: /
+      MINTER_TOKEN_OFFSET: '1'
+      TZ: 'Europe/Paris'
+      LANG: de_CH.UTF-8
+    networks:
+      - shop
+      - traefik
+    logging:
+      driver: json-file
+      options:
+        max-file: '5'
+        max-size: 10m
+    deploy:
+      replicas: 1
+      update_config:
+        delay: 0s
+        order: start-first
+      restart_policy:
+        condition: any
+      resources:
+        reservations:
+          memory: 256M
+          cpus: "0.5"
+        limits:
+          memory: 1G
+          cpus: "1.0"
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.box-engine.rule=PathPrefix(`/graphql`,`/cdn`,`/gridfs`,`/bulk-import`,`/rest`,`/payment`,`/pricing`,`/erc-metadata`)"
+        - "traefik.http.services.box-engine.loadbalancer.server.port=3000"
+        - "shop.unchained.box.autoupdate=true"
+
+  storefront:
+    image: registry.ucc.dev/unchained/storefront:box
+    hostname: box-storefront
+    env_file: .env
+    environment:
+      UNCHAINED_ENDPOINT: http://box-engine:3000/graphql
+      NODE_ENV: production
+      TZ: 'Europe/Paris'
+      LANG: de_CH.UTF-8
+    networks:
+      - shop
+      - traefik
+    logging:
+      driver: json-file
+      options:
+        max-file: '5'
+        max-size: 10m
+    deploy:
+      replicas: 1
+      update_config:
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: any
+      resources:
+        reservations:
+          memory: 128M
+          cpus: "0.5"
+        limits:
+          memory: 1.5G
+          cpus: "1.0"
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.box-storefront.rule=!PathPrefix(`/graphql`,`/cdn`,`/gridfs`,`/bulk-import`,`/rest`,`/payment`,`/pricing`,`/erc-metadata`)"
+        - "traefik.http.services.box-storefront.loadbalancer.server.port=3000"
+        - "shop.unchained.box.autoupdate=true"
+
+volumes:
+  mongodb-data:
+
+networks:
+  traefik:
+    external: true
+    name: traefik
+  shop:
+    name: shop
