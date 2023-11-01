@@ -1,4 +1,6 @@
-docker pull -q registry.ucc.dev/unchained/kitchensink:box
+docker build -t registry.ucc.dev/unchained/kitchensink:box -f ./engine/Dockerfile ./engine
+# docker build -f ./storefront/Dockerfile ./storefront registry.ucc.dev/unchained/storefront:box
+
 docker pull -q registry.ucc.dev/unchained/storefront:box
 docker pull -q mongo:4.4.18-focal
 docker pull -q ghcr.io/erebe/wstunnel:v7.8.2
