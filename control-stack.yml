@@ -32,7 +32,7 @@ services:
     hostname: wstunnel-client
     networks:
       - control
-    command: ./wstunnel client --connection-min-idle 10 --tls-verify-certificate -L tcp://0.0.0.0:2222:unbox-site:22 wss://unbox-connect.unchained.wtf
+    command: ./wstunnel client --connection-min-idle 3 --tls-verify-certificate -L tcp://0.0.0.0:2222:unbox-site:22 wss://unbox-connect.unchained.wtf
     logging:
       driver: json-file
       options:
