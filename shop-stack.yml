@@ -32,8 +32,8 @@ services:
           memory: 3G
           cpus: "1.0"
 
-  helios:
-    image: helios
+  eth-rpc:
+    image: registry.ucc.dev/unchained/heliox:box
     hostname: helios
     logging:
       driver: json-file
@@ -48,7 +48,7 @@ services:
       retries: 3
       start_period: 5s
     networks:
-      - shop
+      - traefik
     deploy:
       replicas: 1
       restart_policy:
@@ -60,6 +60,11 @@ services:
         limits:
           memory: 256M
           cpus: "0.2"
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.box-eth-rpc.rule=PathPrefix(`/eth-rpc`)"
+        - "traefik.http.services.box-eth-rpc.loadbalancer.server.port=8545"
+        - "shop.unchained.box.autoupdate=true"
 
   engine:
     hostname: box-engine
