@@ -32,9 +32,43 @@ services:
           memory: 3G
           cpus: "1.0"
 
+  redis:
+    image: redis:7.2-bookworm
+    hostname: redis
+    logging:
+      driver: "json-file"
+      options:
+        max-file: 5
+        max-size: 5m
+    command:
+      - "redis-server"
+      - "--port 6379"
+      - "--maxmemory 1gb"
+      - "--maxmemory-policy allkeys-lru"
+    networks:
+      - shop
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: any
+      resources:
+        reservations:
+          memory: 0.5G
+          cpus: "0.2"
+        limits:
+          memory: 1.5G
+          cpus: "1.0"
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+        delay: 5s
+
   eth-rpc:
-    image: registry.ucc.dev/unchained/heliox:box
+    image: registry.ucc.dev/unchained/helios:box
     hostname: helios
+    env_file: .env
     logging:
       driver: json-file
       options:
@@ -47,8 +81,14 @@ services:
       timeout: 5s
       retries: 3
       start_period: 5s
+    ports:
+      - target: 8545
+        published: 8545
+        protocol: tcp
+        mode: host
     networks:
       - traefik
+      - shop
     deploy:
       replicas: 1
       restart_policy:
@@ -65,6 +105,38 @@ services:
         - "traefik.http.routers.box-eth-rpc.rule=PathPrefix(`/eth-rpc`)"
         - "traefik.http.services.box-eth-rpc.loadbalancer.server.port=8545"
         - "shop.unchained.box.autoupdate=true"
+
+  cryptopay:
+    image: registry.ucc.dev/unchained/cryptopay:stable
+    hostname: cryptopay
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      TZ: 'Europe/Paris'
+      BCOIN_ENDPOINT: ''
+      BCOIN_API_KEY: ''
+      BCOIN_WALLET_ENDPOINT: ''
+      ETH_RPC_ENDPOINT: http://eth-rpc:8545
+      CRYPTOPAY_BTC_XPUB: ''
+      UNCHAINED_CRYPTOPAY_WEBHOOK_URL: http://box-engine:3000/payment/cryptopay
+      UNCHAINED_GRAPHQL_ENDPOINT: http://box-engine:3000/graphql
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    networks:
+      - shop
+    logging:
+      driver: json-file
+      options:
+        max-file: '5'
+        max-size: 10m
+    deploy:
+      replicas: 1
+      labels:
+        - "traefik.enable=false"
+        - "swarmpit.service.deployment.autoredeploy=true"
+      update_config:
+        delay: 10s
+        order: start-first
 
   engine:
     hostname: box-engine
