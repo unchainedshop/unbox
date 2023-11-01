@@ -12,6 +12,7 @@ ENV HELIOS_CHECKPOINT 0x0e6b8a3d9667d04bd05c3336d86fdcc9c00acbad76000881f1a21f28
 EXPOSE 8545
 
 CMD /root/.helios/bin/helios \
+    --rpc-bind-ip 0.0.0.0 \
     --network $HELIOS_NETWORK \
     --consensus-rpc $HELIOS_CONSENSUS_RPC_HOST \
     --execution-rpc $HELIOS_EXECUTION_RPC_HOST \
