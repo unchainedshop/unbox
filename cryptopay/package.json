@@ -1,0 +1,17 @@
+{
+  "name": "cryptopay",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "type": "module",
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@ethereumjs/wallet": "^2.0.0",
+    "dotenv-extended": "^2.9.0",
+    "web3": "^4.2.1"
+  }
+}
