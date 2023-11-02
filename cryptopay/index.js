@@ -10,18 +10,32 @@ dotenv.load({
   includeProcessEnv: true,
 });
 
+const ADDRESSES_LIMIT = 2000;
+
 const { CRYPTOPAY_ETH_XPUB, CRYPTOPAY_WEBHOOK_URL, CRYPTOPAY_SECRET, CRYPTOPAY_ETH_REWIND_BLOCKS = 100, CRYPTOPAY_ETH_RPC } = process.env;
 
 const web3 = new Web3(CRYPTOPAY_ETH_RPC)
 const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+// var subscription = web3.eth.subscribe('pendingTransactions', function(error, result){
+//     if (!error)
+//         console.log(result);
+// }).on("data", function(transaction){
+//     console.log(transaction);
+// });
+
 async function processBlocks(start, end, { addresses }) {
     console.group("Process blocks from", start, "to", end);
     const changedAddressesETH = [];
-    const blockPromises = Array.from({ length: Number(end - start) }).fill(null).map((_,i) => web3.eth.getBlock(start + BigInt(i), true));
-    for await (const block of blockPromises) {
-        if (!block) continue;
-        console.group("Block", block.number);
+
+    for (let index = 0; index < Number(end - start); index++) {
+        const blockNumber = start + BigInt(index);
+        console.group("Block", blockNumber);
+        const block = await web3.eth.getBlock(blockNumber, true);
+        if (!block) {
+            console.log("Block not found");
+            continue;
+        }
         for (const transaction of block.transactions) {
             if (addresses.includes(transaction.to)) {
                 console.log(`${transaction.from} -> ${transaction.to} (${transaction.value})`);
@@ -34,7 +48,9 @@ async function processBlocks(start, end, { addresses }) {
     await Promise.all([...new Set(changedAddressesETH)].map(async (address) => {
         const balance = await web3.eth.getBalance(address, end);
         if (balance > 0) {
-            const payload = {
+            await fetch(CRYPTOPAY_WEBHOOK_URL, { headers: {
+                'Content-Type': 'application/json',
+            }, method: 'POST', body: JSON.stringify({
                 "wallet": {
                     "currency": "ETH",
                     "contract": null,
@@ -44,11 +60,7 @@ async function processBlocks(start, end, { addresses }) {
                     "blockHeight": Number(end),
                 },
                 "secret": CRYPTOPAY_SECRET,
-            };
-            const response = await fetch(CRYPTOPAY_WEBHOOK_URL, { headers: {
-                'Content-Type': 'application/json',
-            }, method: 'POST', body: JSON.stringify(payload)});
-            const result = await response.json();
+            })});
         }
     }));
 
@@ -58,7 +70,7 @@ async function processBlocks(start, end, { addresses }) {
 const buildMonitoredAddresses = () => {
     console.log("Build monitored address pool (can take a while)")
     const wallet = hdkey.EthereumHDKey.fromExtendedKey(CRYPTOPAY_ETH_XPUB).derivePath("m/0");
-    return Array.from({ length: 20000 }).fill(null).map((_,i) => {
+    return Array.from({ length: ADDRESSES_LIMIT }).fill(null).map((_,i) => {
         const child = wallet.deriveChild(i);
         return child.getWallet().getAddressString();
     });
@@ -70,20 +82,17 @@ const main = async () => {
     while(1) {
         let newestBlockNumber = await web3.eth.getBlockNumber();
         console.log("Current Block Height", newestBlockNumber)
-        if (!blockNumberHead) blockNumberHead = newestBlockNumber - BigInt(CRYPTOPAY_ETH_REWIND_BLOCKS);
         if (newestBlockNumber !== blockNumberHead) {
-            await processBlocks(blockNumberHead, newestBlockNumber, { addresses });
-
-            const payload = {
+            await processBlocks(blockNumberHead || newestBlockNumber - BigInt(CRYPTOPAY_ETH_REWIND_BLOCKS), newestBlockNumber, { addresses });
+            await fetch(CRYPTOPAY_WEBHOOK_URL, { headers: {
+                'Content-Type': 'application/json',
+            }, method: 'POST', body: JSON.stringify({
                 "ping": {
                     "currency": "ETH",
                     "blockHeight": Number(newestBlockNumber),
                 },
                 "secret": CRYPTOPAY_SECRET,
-            };
-            await fetch(CRYPTOPAY_WEBHOOK_URL, { headers: {
-                'Content-Type': 'application/json',
-            }, method: 'POST', body: JSON.stringify(payload)});
+            })});
         }
         
         blockNumberHead = newestBlockNumber;
