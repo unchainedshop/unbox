@@ -146,11 +146,11 @@ services:
       MONGO_URL: mongodb://mongodb/unchained
       EMAIL_FROM: noreply@localhost
       EMAIL_WEBSITE_NAME: Unchained Box
-      EMAIL_WEBSITE_URL: http://unbox.localhost
+      # EMAIL_WEBSITE_URL: http://unbox.localhost
       NODE_ENV: production
-      ROOT_URL: http://unbox.localhost
+      # ROOT_URL: http://unbox.localhost
       UNCHAINED_ASSIGN_CART_FOR_USERS: '1'
-      UNCHAINED_COOKIE_DOMAIN: unbox.localhost
+      # UNCHAINED_COOKIE_DOMAIN: unbox.localhost
       UNCHAINED_COOKIE_PATH: /
       MINTER_TOKEN_OFFSET: '1'
       TZ: 'Europe/Paris'
