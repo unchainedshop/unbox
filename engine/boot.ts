@@ -34,6 +34,12 @@ const start = async () => {
       ApolloServerPluginDrainHttpServer({ httpServer }),
     ],
     options: {
+      // files: {
+      //   transformUrl: (url) => {
+      //     console.log(url)
+      //     return `local:/${url}`;
+      //   },
+      // },
       payment: {
         filterSupportedProviders: async ({ providers }) => {
           return providers.sort((left, right) => {

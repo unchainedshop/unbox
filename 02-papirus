@@ -1,0 +1,29 @@
+#!/bin/sh
+
+WIFI=$(ip -f inet addr show wlan0 | awk '/inet / {print $2}')
+ETH=$(ip -f inet addr show eth0 | awk '/inet / {print $2}')
+
+BUFFER="Unchained Box v0.1"
+
+if [ $WIFI ]
+  then
+    AP=$(nmcli dev wifi show | head -n 1)
+    BUFFER="${BUFFER}\nWifi: ${WIFI}\n${AP}"
+fi
+
+if [ $ETH ]
+  then
+    BUFFER="${BUFFER}\nEthernet: ${ETH}"
+fi
+
+
+set -o allexport
+. /home/unbox/bundle/.env
+set +o allexport
+
+BUFFER="${BUFFER}\n\n${UNCHAINED_COOKIE_DOMAIN}"
+
+echo $BUFFER
+papirus-write -x 10 -y 10 -s 14 "$(echo $BUFFER)"
+
+echo ${ETH}

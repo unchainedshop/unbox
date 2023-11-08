@@ -19,3 +19,11 @@ To fix the size problem, we have the following options:
 We'll propably go the neutrino way for the future or depend on raspberry pi 5.
 
 https://docs.zaphq.io/docs-ios-docker-node-setup
+
+
+# Init E-Paper Display
+
+sudo cp 02-papirus /etc/NetworkManager/dispatcher.d
+sudo chmod +x /etc/NetworkManager/dispatcher.d/02-papirus
+sudo reboot
+
