@@ -1,15 +1,22 @@
-import './load_env.js';
-import express from 'express';
-import cookieParser from 'cookie-parser';
-import http from 'http';
-import responseCachePlugin from '@apollo/server-plugin-response-cache';
-import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
-import { startPlatform, connectPlatformToExpress4 } from '@unchainedshop/platform';
-import { defaultModules, connectDefaultPluginsToExpress4 } from '@unchainedshop/plugins';
-import { log } from '@unchainedshop/logger';
-import serveStatic from 'serve-static';
+import "./load_env.js";
+import express from "express";
+import cookieParser from "cookie-parser";
+import http from "http";
+import responseCachePlugin from "@apollo/server-plugin-response-cache";
+import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
+import {
+  startPlatform,
+  connectPlatformToExpress4,
+} from "@unchainedshop/platform";
+import {
+  defaultModules,
+  connectDefaultPluginsToExpress4,
+} from "@unchainedshop/plugins";
+import { log } from "@unchainedshop/logger";
+import serveStatic from "serve-static";
+import { ApolloServerPluginLandingPageGraphiQLPlayground } from 'apollo-graphiql-playground';
 
-import seed from './seed.js';
+import seed from "./seed.js";
 
 const start = async () => {
   const app = express();
@@ -26,12 +33,15 @@ const start = async () => {
           return (ctx.contextValue as any).userId || null;
         },
         async shouldReadFromCache(ctx) {
-          const bustCache = (ctx.contextValue as any).req.headers['x-unchained-bust-cache'];
-          if (bustCache === 'true') return false;
+          const bustCache = (ctx.contextValue as any).req.headers[
+            "x-unchained-bust-cache"
+          ];
+          if (bustCache === "true") return false;
           return true;
         },
       }),
       ApolloServerPluginDrainHttpServer({ httpServer }),
+      ApolloServerPluginLandingPageGraphiQLPlayground(),
     ],
     options: {
       // files: {
@@ -64,7 +74,7 @@ const start = async () => {
   connectPlatformToExpress4(app, engine);
   connectDefaultPluginsToExpress4(app, engine);
 
-  app.use(serveStatic('static', { index: ['index.html'] }));
+  app.use(serveStatic("static", { index: ["index.html"] }));
 
   await httpServer.listen({ port: process.env.PORT || 3000 });
   log(`🚀 Server ready at http://localhost:${process.env.PORT || 3000}`);
